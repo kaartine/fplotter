@@ -1,10 +1,16 @@
 #from PIL import Image
 #import Image, ImageDraw
-import os
+import os, sys
+import re
+
+if len(sys.argv) != 3:
+    print 'usage: fplotter <trace_file.txt> <output_file.png> \n'
+    sys.exit(1)
 
 WIDTH = 512
 LEFT_MARGIN = 30
 SAFE_WIDTH = WIDTH - LEFT_MARGIN
+PERF_TRACE = '(.*)(perf)(.*)'
 #im = Image.new("RGB", (WIDTH, 512), "white")
 #darw = ImageDraw.Draw(im)
 
@@ -48,9 +54,26 @@ def draw_function(name, values, y):
     if start == 0:
         #draw.line((sx, 10, ex, 10), fill=128)
         print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ")"
-        
 
-def main():
+def parse_file(file_name):
+    for line in open(file_name):
+        if re.match(PERF_TRACE, line):
+            words = line.split(' ')
+            i = 0
+            for word in words:
+                if re.match('[0-9]*.[0-9]*:', word):
+                    break
+                i += 1
+            time = words[i].split(':')[0]
+            print time
+            f = words[i+1].split('_')
+            fname = f[1]
+            print fname
+            on = f[2][0]
+            print on
+
+def main(in_file, out_file):
+    parse_file(in_file)
     y = 10
     for key, values in data.items():
         draw_function(key, values, y)
@@ -59,5 +82,5 @@ def main():
     #im.save(sys.stdout, "PNG")
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main(sys.argv[1], sys.argv[2]))
 
