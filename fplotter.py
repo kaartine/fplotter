@@ -1,5 +1,5 @@
 #from PIL import Image
-#import Image, ImageDraw
+import Image, ImageDraw, ImageFont
 import os, sys
 import re
 
@@ -11,8 +11,8 @@ WIDTH = 512
 LEFT_MARGIN = 30
 SAFE_WIDTH = WIDTH - LEFT_MARGIN
 PERF_TRACE = '(.*)(perf)(.*)'
-#im = Image.new("RGB", (WIDTH, 512), "white")
-#darw = ImageDraw.Draw(im)
+im = Image.new("RGB", (WIDTH, 512), "white")
+draw = ImageDraw.Draw(im)
 
 data = {
         "koe1": [(10.2, 1), (12.3, 0), (20.5, 1), (50, 0), (60, 1)],
@@ -21,14 +21,15 @@ data = {
 
 def draw_line_with_margin(sx, ex, y):
     sx += LEFT_MARGIN
+    ex += LEFT_MARGIN
     print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ")"
-    #draw.line((sx, 10, ex, 10), fill=128)
+    draw.line((sx, y, ex, y), fill=128)
 
 def draw_function(name, values, y):
     # use a truetype font
     font_size = 15
-    #font = ImageFont.truetype("arial.ttf", 15)
-    #draw.text((5, y + font_size/2), "world", font=font)
+    #font = ImageFont.truetype("Menlo.ttf", 15)
+    draw.text((5, y + font_size/2), name) #, font=font)
     print name + "(5, " + str(y + font_size/2) + ")"
 
     sx = 0
@@ -53,6 +54,7 @@ def draw_function(name, values, y):
             start = 1
     if start == 0:
         #draw.line((sx, 10, ex, 10), fill=128)
+        draw_line_with_margin(sx, ex, y)
         print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ")"
 
 def parse_file(file_name):
@@ -79,7 +81,9 @@ def main(in_file, out_file):
         draw_function(key, values, y)
         y += 20
 
-    #im.save(sys.stdout, "PNG")
+    f = open(out_file, 'w+')
+    im.save(f, "PNG")
+    f.close
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1], sys.argv[2]))
