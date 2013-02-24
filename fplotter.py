@@ -11,8 +11,8 @@ WIDTH = 512
 LEFT_MARGIN = 30
 SAFE_WIDTH = WIDTH - LEFT_MARGIN
 PERF_TRACE = '(.*)(perf)(.*)'
-im = Image.new("RGB", (WIDTH, 512), "white")
-draw = ImageDraw.Draw(im)
+im = 0
+draw = 0
 
 data = {
         "koe1": [(10.2, 1), (12.3, 0), (20.5, 1), (50, 0), (60, 1)],
@@ -28,8 +28,9 @@ def draw_line_with_margin(sx, ex, y):
 def draw_function(name, values, y):
     # use a truetype font
     font_size = 15
-    #font = ImageFont.truetype("Menlo.ttf", 15)
-    draw.text((5, y + font_size/2), name) #, font=font)
+    #font = ImageFont.truetype("Helvetica.ttf", 15)
+    #font = ImageFont.load("Helvetica.ttf")
+    #draw.text((5, y + font_size/2), name, font=font)
     print name + "(5, " + str(y + font_size/2) + ")"
 
     sx = 0
@@ -58,6 +59,7 @@ def draw_function(name, values, y):
         print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ")"
 
 def parse_file(file_name):
+    global WIDTH
     for line in open(file_name):
         if re.match(PERF_TRACE, line):
             words = line.split(' ')
@@ -66,17 +68,29 @@ def parse_file(file_name):
                 if re.match('[0-9]*.[0-9]*:', word):
                     break
                 i += 1
-            time = words[i].split(':')[0]
+            time = float(words[i].split(':')[0])
             print time
+            if WIDTH < time:
+                WIDTH = int(time) + 10
             f = words[i+1].split('_')
             fname = f[1]
             print fname
-            on = f[2][0]
+            on = int(f[2][0])
             print on
 
+            if not data.has_key(fname):
+                data[fname] = []
+            data[fname].append( (time, on) )
+            print data
+
 def main(in_file, out_file):
+    global im
+    global draw
     parse_file(in_file)
     y = 10
+    im = Image.new("RGB", (WIDTH, 512), "white")
+    draw = ImageDraw.Draw(im)
+
     for key, values in data.items():
         draw_function(key, values, y)
         y += 20
@@ -84,6 +98,7 @@ def main(in_file, out_file):
     f = open(out_file, 'w+')
     im.save(f, "PNG")
     f.close
+    print "Width " + str(WIDTH)
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1], sys.argv[2]))
