@@ -11,7 +11,7 @@ if len(sys.argv) != 3:
 LEFT_MARGIN = 200
 RIGHT_MARGIN = 100
 WIDTH = 512
-HEIGHT = 512
+HEIGHT = 600
 TRACE_SEPARATOR = 40
 SAFE_WIDTH = WIDTH - RIGHT_MARGIN - LEFT_MARGIN
 PERF_TRACE = '(.*)(perf)(.*)'
@@ -23,6 +23,17 @@ data = {
         #"koe1": [(10.2, 1), (12.3, 0), (20.5, 1), (50, 0), (60, 1)],
         #"koe2": [(15.2, 1), (17.3, 0), (20.5, 1), (30, 0), (59, 1)],
         }
+
+def draw_help_lines(y):
+    x = LEFT_MARGIN
+    f_size = 10
+    while x < WIDTH:
+        scene.add(Line((x, y),(x, y+20)))
+        x += 100
+        scene.add(Text((x, y), str(x-LEFT_MARGIN), f_size))
+        print x
+        print y
+
 
 def draw_line_with_margin(sx, ex, y, updown, time):
     if ex == -1 or sx == -1:
@@ -72,6 +83,7 @@ def draw_function(name, values, y):
         if i == 0 or clear:
             orig_ts = values[i][2]
             orig_te = 0.0
+            clear = 0
         time_e = WIDTH
         on_s = values[i][1]
         on_e = 0
@@ -160,6 +172,8 @@ def main(in_file, out_file):
     for key, values in data.items():
         draw_function(key, values, y)
         y += TRACE_SEPARATOR
+
+    draw_help_lines(y)
 
     #f = open(out_file, 'w+')
     #im.save(f, "PNG")
