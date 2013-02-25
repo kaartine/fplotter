@@ -7,59 +7,82 @@ if len(sys.argv) != 3:
     print 'usage: fplotter <trace_file.txt> <output_file.png> \n'
     sys.exit(1)
 
+LEFT_MARGIN = 200
+RIGHT_MARGIN = 100
 WIDTH = 512
-LEFT_MARGIN = 30
-SAFE_WIDTH = WIDTH - LEFT_MARGIN
+HEIGHT = 512
+TRACE_SEPARATOR = 40
+SAFE_WIDTH = WIDTH - RIGHT_MARGIN - LEFT_MARGIN
 PERF_TRACE = '(.*)(perf)(.*)'
 im = 0
 draw = 0
 
 data = {
-        "koe1": [(10.2, 1), (12.3, 0), (20.5, 1), (50, 0), (60, 1)],
-        "koe2": [(15.2, 1), (17.3, 0), (20.5, 1), (30, 0), (59, 1)],
+        #"koe1": [(10.2, 1), (12.3, 0), (20.5, 1), (50, 0), (60, 1)],
+        #"koe2": [(15.2, 1), (17.3, 0), (20.5, 1), (30, 0), (59, 1)],
         }
 
-def draw_line_with_margin(sx, ex, y):
+def draw_line_with_margin(sx, ex, y, updown, time):
     sx += LEFT_MARGIN
     ex += LEFT_MARGIN
     print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ")"
     draw.line((sx, y, ex, y), fill=128)
+    draw.line((sx, y+1, ex, y+1), fill=128)
+    draw.line((sx, y-1, ex, y-1), fill=128)
+
+    draw.line((ex, y - TRACE_SEPARATOR/2-10, ex, y+TRACE_SEPARATOR/2-10), fill=100)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/msttcorefonts/arial.ttf", 8)
+    if updown:
+        y += -8
+    else: 
+        y += 8
+    draw.text((ex+1, y), str(time)[0:8], font=font)
 
 def draw_function(name, values, y):
     # use a truetype font
     font_size = 15
-    #font = ImageFont.truetype("Helvetica.ttf", 15)
-    #font = ImageFont.load("Helvetica.ttf")
-    #draw.text((5, y + font_size/2), name, font=font)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/msttcorefonts/arial.ttf", font_size)
+    draw.text((5, y - font_size/2), name, font=font)
     print name + "(5, " + str(y + font_size/2) + ")"
 
-    sx = 0
-    ex = SAFE_WIDTH
-    start = 1
-    for i in values:
-        if start == 1:
-            if i[1]:
-                sx = i[0]
-                ex = WIDTH
+    print values
+    i = 0
+    time_diff = 0
+    updown = True
+    while i < len(values):
+        sx = -1
+        ex = -1
+        time_s = values[i][0]
+        on_s = values[i][1]
+
+        if i+1 < len(values):
+            time_e = values[i+1][0]
+            on_e = values[i+1][1]
+
+            sx = time_s
+            if on_e == 0:
+                ex = time_e
             else:
-                sx = i[0]
-                ex = i[0]
-            start = 0
-            continue
+                ex = SAFE_WIDTH
+            time_diff = values[i+1][2] - values[i][2]
         else:
-            if i[1]:
-                sx = i[0]
-            else:
-                ex = i[0]
-            draw_line_with_margin(sx, ex, y)
-            start = 1
-    if start == 0:
+            if on_s:
+                sx = time_s
+                ex = SAFE_WIDTH
+            time_diff = values[i][2]
+            i += 1
+
+        draw_line_with_margin(sx, ex, y, updown, time_diff)
+        i += 2
+        updown = not updown
+    
         #draw.line((sx, 10, ex, 10), fill=128)
-        draw_line_with_margin(sx, ex, y)
-        print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ")"
+        #draw_line_with_margin(sx, ex, y)
+        #print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ")"
 
 def parse_file(file_name):
     global WIDTH
+    min_time = 9999999
     for line in open(file_name):
         if re.match(PERF_TRACE, line):
             words = line.split(' ')
@@ -68,32 +91,46 @@ def parse_file(file_name):
                 if re.match('[0-9]*.[0-9]*:', word):
                     break
                 i += 1
-            time = float(words[i].split(':')[0])
-            print time
-            if WIDTH < time:
-                WIDTH = int(time) + 10
-            f = words[i+1].split('_')
+            time_orig = float(words[i].split(':')[0])
+            time = time_orig
+            if min_time > time:
+                min_time = time
+                print "min_time " + str(min_time)
+            time = int((time - min_time) * 100.0)
+            print "time: " + str(time) + " time_orig: " + str(time_orig)
+
+            if WIDTH < time + RIGHT_MARGIN:
+                WIDTH = time + RIGHT_MARGIN
+                print "update widht: " + str(WIDTH)
+
+            f = words[i+2].split('_')
             fname = f[1]
-            print fname
-            on = int(f[2][0])
+            if len(f) > 3:
+                fname = "_".join(f[1:len(f)-1])
+
+            on = int(f[len(f)-1][0])
             print on
 
+            print fname
             if not data.has_key(fname):
                 data[fname] = []
-            data[fname].append( (time, on) )
-            print data
+                diff = 0.0
+            diff = time_orig
+            data[fname].append( (time, on, diff) )
+
+    print data
 
 def main(in_file, out_file):
     global im
     global draw
     parse_file(in_file)
     y = 10
-    im = Image.new("RGB", (WIDTH, 512), "white")
+    im = Image.new("RGB", (WIDTH, HEIGHT), "black")
     draw = ImageDraw.Draw(im)
 
     for key, values in data.items():
         draw_function(key, values, y)
-        y += 20
+        y += TRACE_SEPARATOR
 
     f = open(out_file, 'w+')
     im.save(f, "PNG")
