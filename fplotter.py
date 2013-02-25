@@ -1,7 +1,8 @@
 #from PIL import Image
-import Image, ImageDraw, ImageFont
+#import Image, ImageDraw, ImageFont
 import os, sys
 import re
+from svg import Scene, Text, Line
 
 if len(sys.argv) != 3:
     print 'usage: fplotter <trace_file.txt> <output_file.png> \n'
@@ -16,6 +17,7 @@ SAFE_WIDTH = WIDTH - RIGHT_MARGIN - LEFT_MARGIN
 PERF_TRACE = '(.*)(perf)(.*)'
 im = 0
 draw = 0
+scene = 0
 
 data = {
         #"koe1": [(10.2, 1), (12.3, 0), (20.5, 1), (50, 0), (60, 1)],
@@ -26,23 +28,27 @@ def draw_line_with_margin(sx, ex, y, updown, time):
     sx += LEFT_MARGIN
     ex += LEFT_MARGIN
     print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ")"
-    draw.line((sx, y, ex, y), fill=128)
-    draw.line((sx, y+1, ex, y+1), fill=128)
-    draw.line((sx, y-1, ex, y-1), fill=128)
+    #draw.line((sx, y, ex, y), fill=128)
+    #draw.line((sx, y+1, ex, y+1), fill=128)
+    #draw.line((sx, y-1, ex, y-1), fill=128)
+    scene.add(Line((sx, y),(ex, y)))
 
-    draw.line((ex, y - TRACE_SEPARATOR/2-10, ex, y+TRACE_SEPARATOR/2-10), fill=100)
-    font = ImageFont.truetype("/usr/share/fonts/truetype/msttcorefonts/arial.ttf", 8)
+    #draw.line((ex, y - TRACE_SEPARATOR/2-10, ex, y+TRACE_SEPARATOR/2-10), fill=100)
+    scene.add(Line((ex, y - TRACE_SEPARATOR/4), (ex, y+TRACE_SEPARATOR/4) ))
+    #font = ImageFont.truetype("/usr/share/fonts/truetype/msttcorefonts/arial.ttf", 8)
     if updown:
         y += -8
     else: 
         y += 8
-    draw.text((ex+1, y), str(time)[0:8], font=font)
+    #draw.text((ex+1, y), str(time)[0:8], font=font)
+    scene.add(Text((ex+1, y), str(time)[0:8], 10))
 
 def draw_function(name, values, y):
     # use a truetype font
-    font_size = 15
-    font = ImageFont.truetype("/usr/share/fonts/truetype/msttcorefonts/arial.ttf", font_size)
-    draw.text((5, y - font_size/2), name, font=font)
+    font_size = 10
+    #font = ImageFont.truetype("/usr/share/fonts/truetype/msttcorefonts/arial.ttf", font_size)
+    #draw.text((5, y - font_size/2), name, font=font)
+    scene.add(Text((5, y - font_size/2), name, font_size))
     print name + "(5, " + str(y + font_size/2) + ")"
 
     print values
@@ -82,7 +88,7 @@ def draw_function(name, values, y):
 
 def parse_file(file_name):
     global WIDTH
-    min_time = 9999999
+    min_time = 9999999.0
     for line in open(file_name):
         if re.match(PERF_TRACE, line):
             words = line.split(' ')
@@ -121,21 +127,25 @@ def parse_file(file_name):
     print data
 
 def main(in_file, out_file):
-    global im
-    global draw
+    #global im
+    #global draw
+    global scene
     parse_file(in_file)
-    y = 10
-    im = Image.new("RGB", (WIDTH, HEIGHT), "black")
-    draw = ImageDraw.Draw(im)
+    y = 20
+    #im = Image.new("RGB", (WIDTH, HEIGHT), "black")
+    #draw = ImageDraw.Draw(im)
+    scene = Scene('fplot', HEIGHT, WIDTH)
 
     for key, values in data.items():
         draw_function(key, values, y)
         y += TRACE_SEPARATOR
 
-    f = open(out_file, 'w+')
-    im.save(f, "PNG")
-    f.close
-    print "Width " + str(WIDTH)
+    #f = open(out_file, 'w+')
+    #im.save(f, "PNG")
+    #f.close
+    #print "Width " + str(WIDTH)
+    scene.write_svg()
+    #scene.display()
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1], sys.argv[2]))
