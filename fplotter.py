@@ -25,9 +25,13 @@ data = {
         }
 
 def draw_line_with_margin(sx, ex, y, updown, time):
+    if ex == -1 or sx == -1:
+        print ex
+        print sx
+        sys.exit(0)
     sx += LEFT_MARGIN
     ex += LEFT_MARGIN
-    print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ")"
+    print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ") time: " + str(time)
     #draw.line((sx, y, ex, y), fill=128)
     #draw.line((sx, y+1, ex, y+1), fill=128)
     #draw.line((sx, y-1, ex, y-1), fill=128)
@@ -41,7 +45,7 @@ def draw_line_with_margin(sx, ex, y, updown, time):
     else: 
         y += 8
     #draw.text((ex+1, y), str(time)[0:8], font=font)
-    scene.add(Text((ex+1, y), str(time)[0:8], 10))
+    scene.add(Text((ex, y), str(time)[0:10] + "ms", 10))
 
 def draw_function(name, values, y):
     # use a truetype font
@@ -51,15 +55,16 @@ def draw_function(name, values, y):
     scene.add(Text((5, y - font_size/2), name, font_size))
     print name + "(5, " + str(y + font_size/2) + ")"
 
-    print values
+    #print values
     i = 0
     time_diff = 0
     updown = True
+    sx = -1
+    ex = -1
     while i < len(values):
-        sx = -1
-        ex = -1
         time_s = values[i][0]
         on_s = values[i][1]
+        time_diff = values[i][2]
 
         if i+1 < len(values):
             time_e = values[i+1][0]
@@ -69,19 +74,28 @@ def draw_function(name, values, y):
             if on_e == 0:
                 ex = time_e
             else:
-                ex = SAFE_WIDTH
-            time_diff = values[i+1][2] - values[i][2]
+                ex = WIDTH
+            print time_diff
+            time_diff = values[i+1][2] - time_diff
+            print values[i+1][2]
+            i += 2
         else:
             if on_s:
                 sx = time_s
-                ex = SAFE_WIDTH
-            time_diff = values[i][2]
+                ex = WIDTH
+            time_diff -= values[i][2]
             i += 1
 
+        if sx > ex:
+            print "ERROR start time > end time"
+            print sx
+            print ex
+            sys.exit()
+
+        time_diff *= 1000
         draw_line_with_margin(sx, ex, y, updown, time_diff)
-        i += 2
         updown = not updown
-    
+
         #draw.line((sx, 10, ex, 10), fill=128)
         #draw_line_with_margin(sx, ex, y)
         #print "(" + str(sx) + "," + str(y) + ")x(" + str(ex) + "," + str(y) + ")"
@@ -98,11 +112,13 @@ def parse_file(file_name):
                     break
                 i += 1
             time_orig = float(words[i].split(':')[0])
-            time = time_orig
+            time = time_orig * 100.0
             if min_time > time:
                 min_time = time
                 print "min_time " + str(min_time)
-            time = int((time - min_time) * 100.0)
+            #time = int((time - min_time) * 100.0)
+            time -= min_time
+            #time *= 1000
             print "time: " + str(time) + " time_orig: " + str(time_orig)
 
             if WIDTH < time + RIGHT_MARGIN:
@@ -120,7 +136,6 @@ def parse_file(file_name):
             print fname
             if not data.has_key(fname):
                 data[fname] = []
-                diff = 0.0
             diff = time_orig
             data[fname].append( (time, on, diff) )
 
