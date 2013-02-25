@@ -61,30 +61,35 @@ def draw_function(name, values, y):
     updown = True
     sx = -1
     ex = -1
+    init = 0
+    time_diff = 0.0
+    last_on = 0
+    orig_ts = 0
+    orig_te = 0
+    clear = 0
     while i < len(values):
         time_s = values[i][0]
+        if i == 0 or clear:
+            orig_ts = values[i][2]
+            orig_te = 0.0
+        time_e = WIDTH
         on_s = values[i][1]
-        time_diff = values[i][2]
+        on_e = 0
+        sx = time_s
+        ex = WIDTH
 
         if i+1 < len(values):
-            time_e = values[i+1][0]
             on_e = values[i+1][1]
-
-            sx = time_s
             if on_e == 0:
+                time_e = values[i+1][0]
+                orig_te = values[i+1][2]
                 ex = time_e
-            else:
-                ex = WIDTH
-            print time_diff
-            time_diff = values[i+1][2] - time_diff
-            print values[i+1][2]
-            i += 2
-        else:
-            if on_s:
-                sx = time_s
-                ex = WIDTH
-            time_diff -= values[i][2]
+
+            if on_s == 1 and on_e == 0:
+                time_diff = orig_te - orig_ts
+                clear = 1
             i += 1
+        i += 1
 
         if sx > ex:
             print "ERROR start time > end time"
@@ -92,7 +97,8 @@ def draw_function(name, values, y):
             print ex
             sys.exit()
 
-        time_diff *= 1000
+
+        time_diff = time_diff * 1000
         draw_line_with_margin(sx, ex, y, updown, time_diff)
         updown = not updown
 
@@ -112,7 +118,7 @@ def parse_file(file_name):
                     break
                 i += 1
             time_orig = float(words[i].split(':')[0])
-            time = time_orig * 100.0
+            time = time_orig * 1000.0
             if min_time > time:
                 min_time = time
                 print "min_time " + str(min_time)
