@@ -24,16 +24,16 @@ data = {
         #"koe2": [(15.2, 1), (17.3, 0), (20.5, 1), (30, 0), (59, 1)],
         }
 
-def draw_help_lines(y):
+def draw_help_lines(y, start_time):
     x = LEFT_MARGIN
     f_size = 10
+    i = 0
     while x < WIDTH:
+        scene.add(Text((x, y), str(x-LEFT_MARGIN) + "ms", f_size))
+        scene.add(Text((x, y + 10), str(start_time + 0.1*i) + "time", f_size))
         scene.add(Line((x, y),(x, y+20)))
         x += 100
-        scene.add(Text((x, y), str(x-LEFT_MARGIN), f_size))
-        print x
-        print y
-
+        i += 1
 
 def draw_line_with_margin(sx, ex, y, updown, time):
     if ex == -1 or sx == -1:
@@ -121,6 +121,7 @@ def draw_function(name, values, y):
 def parse_file(file_name):
     global WIDTH
     min_time = 9999999.0
+    start_time = -1
     for line in open(file_name):
         if re.match(PERF_TRACE, line):
             words = line.split(' ')
@@ -130,6 +131,8 @@ def parse_file(file_name):
                     break
                 i += 1
             time_orig = float(words[i].split(':')[0])
+            if start_time == -1:
+                start_time = time_orig
             time = time_orig * 1000.0
             if min_time > time:
                 min_time = time
@@ -157,13 +160,14 @@ def parse_file(file_name):
             diff = time_orig
             data[fname].append( (time, on, diff) )
 
-    print data
+    #print data
+    return start_time
 
 def main(in_file, out_file):
     #global im
     #global draw
     global scene
-    parse_file(in_file)
+    start_time = parse_file(in_file)
     y = 20
     #im = Image.new("RGB", (WIDTH, HEIGHT), "black")
     #draw = ImageDraw.Draw(im)
@@ -173,7 +177,7 @@ def main(in_file, out_file):
         draw_function(key, values, y)
         y += TRACE_SEPARATOR
 
-    draw_help_lines(y)
+    draw_help_lines(y, start_time)
 
     #f = open(out_file, 'w+')
     #im.save(f, "PNG")
